@@ -1,123 +1,113 @@
-# Template Repo Backend — NestJS
+# Template Repo Backend - NestJS
 
-Backend template with CI/CD pipeline that calls reusable workflows from **Central-Template-main**.
+Reusable NestJS backend template with strict TypeScript defaults and caller-oriented CI/CD.
+
+## What This Template Guarantees
+
+- TypeScript strict mode is enabled.
+- JavaScript source files are disabled (`allowJs: false`).
+- CI quality gates run lint, strict build, unit coverage tests, and e2e tests.
+- Health endpoint is available at `GET /api/health`.
+- Production-ready multi-stage Docker build is included.
 
 ## Stack
 
-- **Framework:** NestJS (TypeScript)
-- **Runtime:** Node.js 20
-- **Testing:** Jest (unit + e2e)
-- **Linting:** ESLint + Prettier
-- **Deployment:** Replit
-- **Docker:** Multi-stage build → GHCR
-- **CI/CD:** GitHub Actions (reusable workflows)
+- Framework: NestJS 11
+- Runtime: Node.js 20
+- Language: TypeScript strict mode
+- Testing: Jest + Supertest
+- Linting: ESLint + TypeScript ESLint + Prettier
+- CI/CD: GitHub Actions caller workflow + local fallback workflow
+
+## Quick Start
+
+```bash
+npm install
+npm run start:dev
+```
+
+Run quality checks:
+
+```bash
+npm run lint
+npm run typecheck
+npm run build
+npm run test:cov
+npm run test:e2e
+```
+
+## Strict TypeScript Policy
+
+This template intentionally enforces strict typing:
+
+- `strict: true`
+- `allowJs: false`
+- `noImplicitAny: true`
+- `noUncheckedIndexedAccess: true`
+- `exactOptionalPropertyTypes: true`
+
+If you add new features, keep controller/service contracts explicitly typed and prefer type-only imports where possible.
+
+## CI/CD Workflows
+
+Two workflow models are included.
+
+1. Caller workflow: `.github/workflows/be-pipeline-caller.yml`
+2. Local fallback workflow: `.github/workflows/master-pipeline-be-single.yml`
+
+Use the caller workflow when your organization has a central orchestrator workflow repo. Use the local fallback workflow when running this template independently.
+
+### Branches
+
+- `test`
+- `uat`
+- `main`
+- `backend`
+
+### Local Fallback Pipeline Stages
+
+1. Quality gates (lint, build, unit coverage, e2e)
+2. Optional security scan (`npm audit`)
+3. Optional SonarCloud analysis
+4. Optional DB migration validation hook
+5. Optional k6 smoke test
+6. Optional deploy/promotion placeholders
+
+## Docker
+
+Build and run locally:
+
+```bash
+docker build -t template-repo-be-single .
+docker run --rm -p 3000:3000 template-repo-be-single
+```
+
+Container healthcheck targets `http://127.0.0.1:3000/api/health`.
+
+## Environment
+
+Copy `.env.example` into `.env` and adjust as needed:
+
+- `NODE_ENV`
+- `PORT`
+- `ENABLE_SWAGGER`
+
+## Optional SonarCloud
+
+`sonar-project.properties` is provided for default analysis. Set `SONAR_TOKEN` in GitHub secrets to enable Sonar stage.
 
 ## Project Structure
 
+```text
+src/
+  main.ts
+  app.module.ts
+  app.controller.ts
+  app.service.ts
+  health/
+    health.module.ts
+    health.controller.ts
+    health.service.ts
+test/
+  app.e2e-spec.ts
 ```
-Template-repo-be-single/
-├── src/
-│   ├── main.ts                    # Application entry point
-│   ├── app.module.ts              # Root module
-│   ├── app.controller.ts          # Root controller
-│   ├── app.service.ts             # Root service
-│   └── health/
-│       ├── health.module.ts       # Health check module
-│       ├── health.controller.ts   # GET /api/health
-│       └── health.service.ts      # Health check logic
-├── tests/
-│   ├── app.controller.spec.ts     # Controller unit tests
-│   ├── app.service.spec.ts        # Service unit tests
-│   ├── health.controller.spec.ts  # Health controller tests
-│   ├── health.service.spec.ts     # Health service tests
-│   ├── app.e2e-spec.ts            # End-to-end tests
-│   └── jest-e2e.json              # E2E Jest config
-├── .github/
-│   └── workflows/
-│       └── master-pipeline-be-single.yml  # CI/CD orchestrator
-├── Dockerfile                     # Multi-stage Docker build
-├── package.json
-├── tsconfig.json
-├── tsconfig.build.json
-├── nest-cli.json
-├── eslint.config.mjs
-├── .prettierrc
-├── .gitignore
-├── .dockerignore
-├── .env.example
-└── sonar-project.properties
-```
-
-## Setup
-
-```bash
-# Install dependencies
-npm install
-
-# Start development server
-npm run start:dev
-
-# Run tests
-npm run test:cov
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start:prod
-```
-
-## CI/CD Pipeline
-
-The workflow (`master-pipeline-be-single.yml`) calls reusable workflows from **Central-Template-main**:
-
-| Stage | Workflow Called | Description |
-|-------|---------------|-------------|
-| Backend Pipeline | `backend-workflow.yml` | Tests + Lint + Security scan |
-| Versioning | `versioning.yml` | Auto version tags (test/main) |
-| Deploy | Replit (inline) | Deploy to test/uat/prod via Replit |
-| Production Gate | `production-gate.yml` | Approval + checklist for prod |
-| Docker | `docker-build.yml` | Build & push to GHCR (main only) |
-| Promotion | `promotion.yml` | Auto-create PRs test→uat, uat→main |
-| Summary | `pipeline-summary.yml` | Pipeline results summary |
-| Notifications | `notifications.yml` | Slack/Discord alerts |
-
-### Branch Strategy
-
-```
-test → uat → main
-```
-
-- **test**: Runs tests, deploys to Replit test, creates PR → uat
-- **uat**: Runs tests, deploys to Replit uat, creates PR → main
-- **main**: Production gate → Replit prod → Docker GHCR → version tag
-
-## Required Secrets & Variables
-
-### Repository Variable
-
-Set `BE_SINGLE_SYSTEM_JSON` as a repository variable:
-
-```json
-{
-  "name": "MyBackend-API",
-  "dir": ".",
-  "image": "mybackend-api",
-  "replit_deploy_secret": "REPLIT_DEPLOY_URL"
-}
-```
-
-### Repository Secrets
-
-| Secret | Description |
-|--------|-------------|
-| `REPLIT_DEPLOY_URL` | Replit deployment webhook URL |
-| `REPLIT_API_KEY` | Replit API key (if needed) |
-| `GH_PR_TOKEN` | GitHub PAT for PR creation |
-| `SONAR_TOKEN` | SonarCloud token |
-| `SLACK_WEBHOOK_URL` | Slack notifications (optional) |
-| `DISCORD_WEBHOOK_URL` | Discord notifications (optional) |
-
-## Workflow Link
-
-Replace `OWNER/Central-Template-main` in the workflow file with your actual GitHub org/repo path where Central-Template-main is hosted.

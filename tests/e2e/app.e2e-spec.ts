@@ -2,7 +2,7 @@ import { Test } from '@nestjs/testing';
 import type { TestingModule } from '@nestjs/testing';
 import type { INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { AppModule } from './../src/app.module';
+import { AppModule } from '../../src/app.module';
 
 describe('AppController (e2e)', () => {
   let app: INestApplication;
@@ -22,7 +22,10 @@ describe('AppController (e2e)', () => {
       typeof request
     >[0];
 
-    return request(httpServer).get('/api').expect(200).expect('Hello World!');
+    return request(httpServer)
+      .get('/api')
+      .expect(200)
+      .expect('Hello World!');
   });
 
   it('/api/health (GET)', () => {

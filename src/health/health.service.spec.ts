@@ -1,4 +1,5 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test } from '@nestjs/testing';
+import type { TestingModule } from '@nestjs/testing';
 import { HealthService } from './health.service';
 
 describe('HealthService', () => {
@@ -14,5 +15,12 @@ describe('HealthService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('should return an ok status payload', () => {
+    const status = service.getStatus();
+
+    expect(status.status).toBe('ok');
+    expect(status.uptimeSeconds).toBeGreaterThanOrEqual(0);
   });
 });
