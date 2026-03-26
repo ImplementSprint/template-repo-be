@@ -1,14 +1,18 @@
-FROM node:20-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
+# Install deps first (cached unless package.json changes)
 COPY package*.json ./
 RUN npm ci
 
-COPY . .
+# Copy only source files needed for build
+COPY tsconfig*.json nest-cli.json ./
+COPY src/ ./src/
+
 RUN npm run build
 
-FROM node:20-alpine AS runner
+FROM node:22-alpine AS runner
 
 ENV NODE_ENV=production
 WORKDIR /app
@@ -16,10 +20,18 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm ci --omit=dev
 
-COPY --from=builder /app/dist ./dist
+# Security: create non-root user before copying application files so that
+# --chown can assign correct ownership at copy time rather than after.
+RUN addgroup --system --gid 1001 nodejs \
+    && adduser --system --uid 1001 nestjs
+
+COPY --chown=nestjs:nodejs --from=builder /app/dist ./dist
+
+USER nestjs
 
 EXPOSE 3000
 
-HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 CMD node -e "require('http').get('http://127.0.0.1:3000/api/health', (res) => { if (res.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));"
+HEALTHCHECK --interval=30s --timeout=3s --start-period=15s --retries=3 \
+  CMD node -e "require('http').get('http://127.0.0.1:3000/api/v1/health', (res) => { if (res.statusCode !== 200) process.exit(1); }).on('error', () => process.exit(1));"
 
 CMD ["node", "dist/main"]

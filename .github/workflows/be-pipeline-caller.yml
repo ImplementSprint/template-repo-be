@@ -1,10 +1,10 @@
-﻿name: "BE Pipeline Caller"
+name: "BE Pipeline Caller"
 
 on:
   push:
-    branches: [test, uat, main, backend]
+    branches: [test, uat, main]
   pull_request:
-    branches: [test, uat, main, backend]
+    branches: [test, uat, main]
   workflow_dispatch:
     inputs:
       pipeline_mode:
@@ -53,8 +53,20 @@ on:
         type: boolean
         default: false
 
+# Least-privilege permissions for the caller workflow
+permissions:
+  contents: read
+  pull-requests: read
+
+# Cancel in-progress runs for the same branch to avoid redundant pipeline executions
+concurrency:
+  group: backend-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   call-backend-orchestrator:
+    # TODO: Switch @main to @v1 (or the appropriate release tag) once a stable tag is published
+    #       in ImplementSprint/central-workflow to avoid unintentional breaking changes on main.
     uses: ImplementSprint/central-workflow/.github/workflows/master-pipeline-be.yml@main
     with:
       pipeline_mode: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.pipeline_mode || 'auto' }}
