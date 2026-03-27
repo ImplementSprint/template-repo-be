@@ -59,13 +59,13 @@ on:
 #   contents: write        — version-test creates git version tags
 #   packages: write        — docker-build-main pushes Docker image to GHCR
 #   security-events: write — docker-build-main uploads Trivy results to GitHub Security
-#   pull-requests: read    — concurrency group reads github.head_ref on PRs
+#   pull-requests: write   — pr-to-uat and pr-to-main jobs create promotion PRs
 #   id-token: write        — required if any job uses OIDC-based cloud auth
 permissions:
   contents: write
   packages: write
   security-events: write
-  pull-requests: read
+  pull-requests: write
   id-token: write
 
 # Cancel in-progress runs for the same branch to avoid redundant pipeline executions
