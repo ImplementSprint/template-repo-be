@@ -53,10 +53,20 @@ on:
         type: boolean
         default: false
 
-# Least-privilege permissions for the caller workflow
+# Minimum permissions required by the central pipeline's reusable jobs.
+# GitHub enforces the caller's permissions as a hard ceiling — called workflows
+# cannot exceed what the caller grants, even if they declare higher scopes internally.
+#   contents: write        — version-test creates git version tags
+#   packages: write        — docker-build-main pushes Docker image to GHCR
+#   security-events: write — docker-build-main uploads Trivy results to GitHub Security
+#   pull-requests: read    — concurrency group reads github.head_ref on PRs
+#   id-token: write        — required if any job uses OIDC-based cloud auth
 permissions:
-  contents: read
+  contents: write
+  packages: write
+  security-events: write
   pull-requests: read
+  id-token: write
 
 # Cancel in-progress runs for the same branch to avoid redundant pipeline executions
 concurrency:
