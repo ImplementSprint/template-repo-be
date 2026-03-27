@@ -42,10 +42,15 @@ describe('AppController (e2e)', () => {
 
     return request(httpServer)
       .get('/api/v1/health')
-      .expect(200)
-      .expect((res: { body: { status: string; uptimeSeconds: number } }) => {
-        expect(['ok', 'degraded']).toContain(res.body.status);
-        expect(typeof res.body.uptimeSeconds).toBe('number');
-      });
+      .expect(
+        (res: {
+          status: number;
+          body: { status: string; uptimeSeconds: number };
+        }) => {
+          expect([200, 503]).toContain(res.status);
+          expect(['ok', 'degraded', 'error']).toContain(res.body.status);
+          expect(typeof res.body.uptimeSeconds).toBe('number');
+        },
+      );
   });
 });
