@@ -21,6 +21,7 @@ COPY package*.json ./
 # Pull patched alpine package for CVE-2026-22184 before app install.
 RUN apk upgrade --no-cache zlib \
   && npm ci --omit=dev \
+  && rm package-lock.json \
   && addgroup --system --gid 1001 nodejs \
   && adduser --system --uid 1001 nestjs
 
