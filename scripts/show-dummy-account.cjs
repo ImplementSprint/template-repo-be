@@ -15,12 +15,13 @@ console.log('Dummy account fixture for manual testing');
 console.log('----------------------------------------');
 console.log(JSON.stringify(fixture, null, 2));
 
-console.log('\nSuggested login payload:');
+console.log('\nSuggested login payload (password not logged):');
 console.log(
   JSON.stringify(
     {
       email: fixture.users[0]?.email,
-      password: fixture.users[0]?.password,
+      // Intentionally do not log the actual password to avoid exposing sensitive data
+      password: '<redacted>',
     },
     null,
     2,
