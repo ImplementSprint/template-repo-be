@@ -106,8 +106,6 @@ src/
     health.module.ts
     health.controller.ts            GET /api/v1/health → 200 ok/degraded | 503 error
     health.service.ts               Parallel checks: Supabase + API Center connectivity
-  database/
-    migrations/                     Placeholder for Supabase SQL migration files
 tests/
   e2e/                              Supertest e2e specs
   performance/
@@ -175,7 +173,7 @@ const client = this.supabaseService.getClient();
 const { data, error } = await client.from('orders').select('*');
 ```
 
-Schema management is handled in the Supabase dashboard or via the Supabase CLI. The `src/database/migrations/` directory is the intended location for SQL migration files. The `migrate:check` CI step passes cleanly without requiring a live database connection.
+Schema management is handled in the Supabase dashboard or via the Supabase CLI.
 
 ---
 
@@ -213,9 +211,9 @@ Before the first pipeline run, configure these in your GitHub repository:
 1. **Quality gates** — lint, typecheck, build, unit tests (80% coverage threshold)
 2. **Security scan** — `npm audit` + license compliance check
 3. **SonarCloud** — static analysis (requires secrets above)
-4. **DB migration check** — validates `migrate:check` script
-5. **Docker build** — multi-stage build + Trivy vulnerability scan
-6. **Deploy** — staging deploy on `test` and `uat` branches
+4. **Docker build** — multi-stage build + Trivy vulnerability scan (main branch only)
+5. **Deploy** — staging deploy on `test` and `uat` branches
+6. **Replit deploy** — preview deploy on `test` and production deploy on `main`
 7. **Versioning** — semantic version tag per branch
 8. **Promotion** — auto-creates PR to next branch on success
 9. **k6 smoke test** — runs on `test` and `uat` branches against the deployed URL
@@ -224,7 +222,7 @@ Before the first pipeline run, configure these in your GitHub repository:
 
 ## Replit (Pre-Production Preview)
 
-Replit is used for quick preview deployments on the `test` branch only. UAT and production use Kubernetes.
+Replit is used for preview deployments on the `test` branch and production deployment on the `main` branch. UAT uses Kubernetes.
 
 ### Files added
 
