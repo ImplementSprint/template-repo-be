@@ -66,7 +66,7 @@ permissions:
 
 # Cancel in-progress runs for the same branch to avoid redundant pipeline executions
 concurrency:
-  group: backend-${{ github.head_ref || github.ref_name }}
+  group: backend-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
   cancel-in-progress: true
 
 jobs:
