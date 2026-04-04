@@ -62,10 +62,10 @@ permissions:
   pull-requests: write
   id-token: write
 
-# Cancel in-progress runs for the same branch to avoid redundant pipeline executions
+# Queue runs per branch/event so each push executes fully (no auto-cancel)
 concurrency:
   group: backend-${{ github.event_name }}-${{ github.head_ref || github.ref_name }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   call-backend-orchestrator:
