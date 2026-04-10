@@ -12,7 +12,7 @@ It already includes:
 - APICenter SDK integration
 - Health endpoint with dependency checks
 - CI/CD caller workflow into central reusable pipelines
-- Replit deploy integration for test and main lanes
+- Replit runtime alignment for test/main branch auto-deploy
 - Strict TypeScript + lint/test tooling
 
 Use this template as a starting point, then replace business-domain code with your own modules.
@@ -29,7 +29,7 @@ This backend does not run alone. It sits in a wider system:
 [ImplementSprint/central-workflow]
     |
     |-- quality gates, sonar, docker, k6, promotion
-    |-- replit deploy lane (test/main)
+  |-- optional replit webhook lane (manual/legacy)
 
 [Your Tribe Backend Runtime]
     |
@@ -105,10 +105,10 @@ Required for default pipeline behavior:
 - GH_PR_TOKEN
 - K6_CLOUD_TOKEN
 - K6_CLOUD_PROJECT_ID
-- REPLIT_DEPLOY_URL
 
 Optional:
 
+- REPLIT_DEPLOY_URL (only if using webhook-based Replit deploy from CI)
 - REPLIT_API_KEY (currently optional/unused by deploy curl path)
 
 ### 4.3 Runtime Secrets (Replit or Cluster Secret Store)
@@ -258,15 +258,15 @@ Without platform registration and allowlist, calls will be denied.
 
 ### 8.1 Branch behavior
 
-- test branch: Replit preview deploy lane
-- main branch: Replit production deploy lane
+- test branch: Replit preview via branch auto-deploy
+- main branch: Replit production via branch auto-deploy
 - uat branch: Kubernetes deploy path (not Replit)
 
-### 8.2 Required for Replit CI deploy
+### 8.2 Optional for Replit webhook mode
 
 - GitHub secret REPLIT_DEPLOY_URL must exist
 
-If missing, reusable replit deploy job fails hard.
+If missing, reusable replit deploy job fails hard when webhook mode is enabled.
 
 ### 8.3 Runtime setup on Replit
 
@@ -286,13 +286,13 @@ Typical order:
 2. Security scan
 3. SonarCloud analysis
 4. Docker build (main lane)
-5. Deployment lanes (staging/replit depending on branch)
+5. Deployment lanes (staging on uat by default; optional webhook lane when enabled)
 6. k6 smoke lane (branch/policy dependent)
 7. Promotion PR automation (test -> uat -> main)
 
 Important:
 
-- run_deploy defaults true on push in caller config.
+- run_deploy defaults to uat-only behavior on push in caller config.
 - dry_run mainly impacts manual dispatch scenarios.
 
 ## 10) Feature Development Pattern For New Teams
@@ -310,7 +310,7 @@ Use this repeatable flow:
 ## 11) Common Mistakes To Avoid
 
 - Pushing without BACKEND_SINGLE_SYSTEMS_JSON configured
-- Forgetting REPLIT_DEPLOY_URL and expecting Replit lane to pass
+- Enabling webhook mode without REPLIT_DEPLOY_URL configured
 - Using wildcard CORS origins instead of exact values
 - Depending on legacy API_CENTER_API_KEY when tribe credentials are available
 - Bypassing APICenter for inter-service/external calls

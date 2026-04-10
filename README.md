@@ -226,7 +226,7 @@ Before the first pipeline run, configure these in your GitHub repository:
 | `GH_PR_TOKEN` | Token with PR write permissions for auto-promotion |
 | `K6_CLOUD_TOKEN` | Grafana Cloud token for k6 execution |
 | `K6_CLOUD_PROJECT_ID` | Grafana Cloud project ID for k6 execution |
-| `REPLIT_DEPLOY_URL` | Required deploy hook URL for Replit deploy lanes (`test`/`main`) |
+| `REPLIT_DEPLOY_URL` | Optional. Only needed if you explicitly enable webhook-based Replit deploy lanes from CI |
 | `REPLIT_API_KEY` | Optional (currently unused by the reusable deploy workflow) |
 
 ### Pipeline Stages
@@ -235,10 +235,10 @@ Before the first pipeline run, configure these in your GitHub repository:
 2. **Security scan** — `npm audit` + license compliance check
 3. **SonarCloud** — static analysis (requires secrets above)
 4. **Docker build** — multi-stage build + Trivy vulnerability scan (main branch only)
-5. **Deploy** — staging deploy on `test` and `uat` branches
-6. **Replit deploy** — preview deploy on `test` and production deploy on `main`
+5. **Deploy** — staging deploy on `uat` branch (default push behavior)
+6. **Replit deploy (webhook mode)** — optional/manual lane when `run_deploy=true` and `REPLIT_DEPLOY_URL` is configured
 7. **Versioning** — semantic version tag per branch
-8. **k6 smoke test** — runs after Replit deploy on `test` and `main` branches
+8. **k6 smoke test** — runs on configured branches and target URL settings
 9. **Promotion** — auto-creates PR to next branch only when all required gates pass (tests, security, SonarCloud, Grafana k6)
 
 ---
@@ -246,6 +246,8 @@ Before the first pipeline run, configure these in your GitHub repository:
 ## Replit (Test Preview + Main Deployment)
 
 Replit is used for preview deployments on the `test` branch and production deployment on the `main` branch. UAT uses Kubernetes.
+
+Default behavior in this repository is branch-based Replit auto-deploy (via Replit GitHub integration), not webhook-triggered deploy from CI.
 
 ### Files added
 
@@ -263,7 +265,7 @@ Replit is used for preview deployments on the `test` branch and production deplo
   - Preferred: `API_CENTER_TRIBE_ID` + `API_CENTER_TRIBE_SECRET`
   - Legacy fallback: `API_CENTER_API_KEY`
 5. Set `NODE_ENV=production` and `ENABLE_SWAGGER=false`
-6. Ensure GitHub secret `REPLIT_DEPLOY_URL` is configured for CI deploy lanes (`test` and `main`)
+6. Optional: set GitHub secret `REPLIT_DEPLOY_URL` only if you plan to run webhook-based Replit deploy lane from CI
 7. Click **Run** — Replit will execute `npm run build && npm run start:prod`
 
 The app binds to `0.0.0.0:3000` so Replit's reverse proxy can reach it. The health endpoint at `/api/v1/health` is available for Replit's health monitor.
