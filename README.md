@@ -2,6 +2,8 @@
 
 Reusable NestJS 11 backend template for ImplementSprint tribes. Each tribe clones this repository as their backend service. It comes pre-wired with Supabase, the API Center SDK, security middleware, CI/CD, and Docker — ready to extend with tribe-specific feature modules.
 
+Start with `START_HERE_BACKEND.md` for a full onboarding and system-level explanation.
+
 ---
 
 ## What This Template Provides
@@ -70,13 +72,16 @@ Copy `.env.example` to `.env` and fill in real values. Never commit `.env`.
 | `SUPABASE_SERVICE_ROLE_KEY` | Yes | Supabase service role key — bypasses RLS, store in Vault/Secrets |
 | `ALLOWED_ORIGINS` | Yes | Comma-separated CORS origins (e.g. `http://localhost:5173`) |
 | `API_CENTER_BASE_URL` | Optional | API Center gateway URL — SDK warns and disables if absent |
-| `API_CENTER_API_KEY` | Optional | Bearer token for API Center authentication |
+| `API_CENTER_TRIBE_ID` | Optional | Preferred APICenter auth mode: registered tribe/service id |
+| `API_CENTER_TRIBE_SECRET` | Optional | Preferred APICenter auth mode: secret paired with `API_CENTER_TRIBE_ID` |
+| `API_CENTER_API_KEY` | Optional | Legacy static bearer token mode (fallback) |
+| `API_CENTER_TIMEOUT_MS` | Optional | APICenter HTTP timeout in ms (default `10000`) |
 
-`SUPABASE_SERVICE_ROLE_KEY` and `API_CENTER_API_KEY` are **HIGH sensitivity** — store them in GitHub Secrets or Vault, never in plaintext files committed to version control.
+`SUPABASE_SERVICE_ROLE_KEY`, `API_CENTER_TRIBE_SECRET`, and `API_CENTER_API_KEY` are **HIGH sensitivity** — store them in GitHub Secrets or Vault, never in plaintext files committed to version control.
 
-### Strict Env Validation (opt-in)
+### Strict Env Validation
 
-`src/common/config/env.validation.ts` provides a `validateEnv` function that can be passed to `ConfigModule.forRoot({ validate: validateEnv })` to enforce all required variables at startup. It is commented out by default in `app.module.ts` to avoid breaking local development without a complete `.env`. Enable it in production deployments.
+`src/common/config/env.validation.ts` is enforced automatically when `NODE_ENV=production`, which makes Replit/main deploys fail fast on missing required configuration. Non-production runs keep local developer flexibility.
 
 ---
 
@@ -91,7 +96,7 @@ src/
   common/
     config/
       security.config.ts            CISO-owned: Helmet options, CORS factory, body size limit
-      env.validation.ts             Strict env var validation (opt-in)
+      env.validation.ts             Strict env var validation (enabled in production)
     filters/
       all-exceptions.filter.ts      Global exception filter — structured error envelope
     middleware/
@@ -146,6 +151,11 @@ The Docker container healthcheck targets this endpoint.
 
 The `ApiCenterSdkService` is the authorized channel for calling the shared API gateway. Any feature module can inject it:
 
+- Preferred auth mode: `API_CENTER_TRIBE_ID` + `API_CENTER_TRIBE_SECRET` (short-lived token lifecycle)
+- Legacy fallback mode: `API_CENTER_API_KEY` (static bearer token)
+- Paths for APICenter namespaces (`/tribes`, `/shared`, `/external`, `/auth`, `/registry`, `/health`) are normalized to `/api/v1/...` automatically
+- Typed Kafka helpers are available: `kafkaListClusters()`, `kafkaListTopics(clusterId)`, `kafkaProduceRecords(clusterId, topic, records)`, and `buildTenantTopic(tribeId, suffix)`
+
 ```typescript
 constructor(private readonly sdkService: ApiCenterSdkService) {}
 
@@ -154,6 +164,15 @@ const { data, correlationId } = await this.sdkService.get<User[]>('/tribes/tribe
 
 // Consume a shared external service registered in the API Center
 const { data } = await this.sdkService.get('/shared/payments/invoice/123');
+
+// Kafka through APICenter external routing
+const topic = ApiCenterSdkService.buildTenantTopic('orders-service', 'order-created');
+await this.sdkService.kafkaProduceRecords('lkc-123', topic, [
+  {
+    key: 'order-001',
+    value: JSON.stringify({ orderId: 'order-001', status: 'created' }),
+  },
+]);
 ```
 
 If `API_CENTER_BASE_URL` is not set, the service logs a warning at startup and all calls throw — it does not crash the application.
@@ -207,6 +226,8 @@ Before the first pipeline run, configure these in your GitHub repository:
 | `GH_PR_TOKEN` | Token with PR write permissions for auto-promotion |
 | `K6_CLOUD_TOKEN` | Grafana Cloud token for k6 execution |
 | `K6_CLOUD_PROJECT_ID` | Grafana Cloud project ID for k6 execution |
+| `REPLIT_DEPLOY_URL` | Required deploy hook URL for Replit deploy lanes (`test`/`main`) |
+| `REPLIT_API_KEY` | Optional (currently unused by the reusable deploy workflow) |
 
 ### Pipeline Stages
 
@@ -222,7 +243,7 @@ Before the first pipeline run, configure these in your GitHub repository:
 
 ---
 
-## Replit (Pre-Production Preview)
+## Replit (Test Preview + Main Deployment)
 
 Replit is used for preview deployments on the `test` branch and production deployment on the `main` branch. UAT uses Kubernetes.
 
@@ -238,8 +259,12 @@ Replit is used for preview deployments on the `test` branch and production deplo
 1. Import the repository into Replit (Import from GitHub)
 2. Open **Tools > Secrets** and add all required env vars (do NOT create a `.env` file — see `.env.example` for the full list)
 3. Set `ALLOWED_ORIGINS` to your Replit preview URL: `https://<repl-name>.<username>.repl.co`
-4. Set `NODE_ENV=production` and `ENABLE_SWAGGER=false`
-5. Click **Run** — Replit will execute `npm run build && npm run start:prod`
+4. Set APICenter auth mode:
+  - Preferred: `API_CENTER_TRIBE_ID` + `API_CENTER_TRIBE_SECRET`
+  - Legacy fallback: `API_CENTER_API_KEY`
+5. Set `NODE_ENV=production` and `ENABLE_SWAGGER=false`
+6. Ensure GitHub secret `REPLIT_DEPLOY_URL` is configured for CI deploy lanes (`test` and `main`)
+7. Click **Run** — Replit will execute `npm run build && npm run start:prod`
 
 The app binds to `0.0.0.0:3000` so Replit's reverse proxy can reach it. The health endpoint at `/api/v1/health` is available for Replit's health monitor.
 
@@ -290,4 +315,4 @@ If your tribe already has the NestJS backend, bring these layers across:
 4. **Update `app.module.ts`** — import `ConfigModule`, `SupabaseModule`, `ApiCenterSdkModule`, apply `CorrelationIdMiddleware`
 5. **Replace the CI caller** — use `.github/workflows/be-pipeline-caller.yml` from this template
 6. **Configure GitHub** — set the repository variables and secrets listed above
-7. **Set your `.env`** — Supabase credentials, API Center URL and key, CORS origins
+7. **Set your `.env`** — Supabase credentials, API Center URL, tribe credentials (or legacy key fallback), and CORS origins
