@@ -1,17 +1,17 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites name="jest tests" tests="20" failures="0" errors="0" time="2.102">
-  <testsuite name="ApiCenterSdkService" errors="0" failures="0" skipped="0" timestamp="2026-04-10T12:42:12" time="1.56" tests="20">
-    <testcase classname="ApiCenterSdkService constructor should be defined when baseURL is set" name="ApiCenterSdkService constructor should be defined when baseURL is set" time="0.01">
+<testsuites name="jest tests" tests="20" failures="0" errors="0" time="1.55">
+  <testsuite name="ApiCenterSdkService" errors="0" failures="0" skipped="0" timestamp="2026-04-10T12:56:40" time="1.208" tests="20">
+    <testcase classname="ApiCenterSdkService constructor should be defined when baseURL is set" name="ApiCenterSdkService constructor should be defined when baseURL is set" time="0.013">
     </testcase>
-    <testcase classname="ApiCenterSdkService constructor should be defined when baseURL is not set (graceful degradation)" name="ApiCenterSdkService constructor should be defined when baseURL is not set (graceful degradation)" time="0.002">
+    <testcase classname="ApiCenterSdkService constructor should be defined when baseURL is not set (graceful degradation)" name="ApiCenterSdkService constructor should be defined when baseURL is not set (graceful degradation)" time="0.003">
     </testcase>
-    <testcase classname="ApiCenterSdkService constructor initialises client without auth header when apiKey is not set" name="ApiCenterSdkService constructor initialises client without auth header when apiKey is not set" time="0.002">
+    <testcase classname="ApiCenterSdkService constructor initialises client without auth header when apiKey is not set" name="ApiCenterSdkService constructor initialises client without auth header when apiKey is not set" time="0.001">
     </testcase>
-    <testcase classname="ApiCenterSdkService ping() returns false when client is not initialised (no baseURL)" name="ApiCenterSdkService ping() returns false when client is not initialised (no baseURL)" time="0.002">
+    <testcase classname="ApiCenterSdkService ping() returns false when client is not initialised (no baseURL)" name="ApiCenterSdkService ping() returns false when client is not initialised (no baseURL)" time="0.001">
     </testcase>
-    <testcase classname="ApiCenterSdkService ping() returns true when /api/v1/health/ready GET succeeds" name="ApiCenterSdkService ping() returns true when /api/v1/health/ready GET succeeds" time="0.013">
+    <testcase classname="ApiCenterSdkService ping() returns true when /api/v1/health/ready GET succeeds" name="ApiCenterSdkService ping() returns true when /api/v1/health/ready GET succeeds" time="0.003">
     </testcase>
-    <testcase classname="ApiCenterSdkService ping() falls back to /api/v1/health/live when ready endpoint is missing" name="ApiCenterSdkService ping() falls back to /api/v1/health/live when ready endpoint is missing" time="0.003">
+    <testcase classname="ApiCenterSdkService ping() falls back to /api/v1/health/live when ready endpoint is missing" name="ApiCenterSdkService ping() falls back to /api/v1/health/live when ready endpoint is missing" time="0.002">
     </testcase>
     <testcase classname="ApiCenterSdkService ping() returns false when all health endpoints fail" name="ApiCenterSdkService ping() returns false when all health endpoints fail" time="0.002">
     </testcase>
@@ -23,23 +23,23 @@
     </testcase>
     <testcase classname="ApiCenterSdkService get() uses tribe credentials to mint APICenter token when configured" name="ApiCenterSdkService get() uses tribe credentials to mint APICenter token when configured" time="0.002">
     </testcase>
-    <testcase classname="ApiCenterSdkService get() throws when client is not initialised" name="ApiCenterSdkService get() throws when client is not initialised" time="0.017">
+    <testcase classname="ApiCenterSdkService get() throws when client is not initialised" name="ApiCenterSdkService get() throws when client is not initialised" time="0.016">
     </testcase>
-    <testcase classname="ApiCenterSdkService post() normalizes APICenter path and returns data/correlationId from response" name="ApiCenterSdkService post() normalizes APICenter path and returns data/correlationId from response" time="0.003">
+    <testcase classname="ApiCenterSdkService post() normalizes APICenter path and returns data/correlationId from response" name="ApiCenterSdkService post() normalizes APICenter path and returns data/correlationId from response" time="0.002">
     </testcase>
-    <testcase classname="ApiCenterSdkService post() unwraps APICenter success envelope in POST response" name="ApiCenterSdkService post() unwraps APICenter success envelope in POST response" time="0.002">
+    <testcase classname="ApiCenterSdkService post() unwraps APICenter success envelope in POST response" name="ApiCenterSdkService post() unwraps APICenter success envelope in POST response" time="0.001">
     </testcase>
-    <testcase classname="ApiCenterSdkService post() throws when client is not initialised" name="ApiCenterSdkService post() throws when client is not initialised" time="0.005">
+    <testcase classname="ApiCenterSdkService post() throws when client is not initialised" name="ApiCenterSdkService post() throws when client is not initialised" time="0.002">
     </testcase>
-    <testcase classname="ApiCenterSdkService post() does not retry failed POST requests" name="ApiCenterSdkService post() does not retry failed POST requests" time="0.002">
+    <testcase classname="ApiCenterSdkService post() does not retry failed POST requests" name="ApiCenterSdkService post() does not retry failed POST requests" time="0.005">
     </testcase>
     <testcase classname="ApiCenterSdkService kafka helpers kafkaListClusters calls the APICenter external clusters path" name="ApiCenterSdkService kafka helpers kafkaListClusters calls the APICenter external clusters path" time="0.002">
     </testcase>
-    <testcase classname="ApiCenterSdkService kafka helpers kafkaListTopics URL-encodes cluster id" name="ApiCenterSdkService kafka helpers kafkaListTopics URL-encodes cluster id" time="0.001">
+    <testcase classname="ApiCenterSdkService kafka helpers kafkaListTopics URL-encodes cluster id" name="ApiCenterSdkService kafka helpers kafkaListTopics URL-encodes cluster id" time="0.002">
     </testcase>
-    <testcase classname="ApiCenterSdkService kafka helpers kafkaProduceRecords URL-encodes path segments and sends records envelope" name="ApiCenterSdkService kafka helpers kafkaProduceRecords URL-encodes path segments and sends records envelope" time="0.002">
+    <testcase classname="ApiCenterSdkService kafka helpers kafkaProduceRecords URL-encodes path segments and sends records envelope" name="ApiCenterSdkService kafka helpers kafkaProduceRecords URL-encodes path segments and sends records envelope" time="0.006">
     </testcase>
-    <testcase classname="ApiCenterSdkService kafka helpers buildTenantTopic normalizes tribe id and suffix" name="ApiCenterSdkService kafka helpers buildTenantTopic normalizes tribe id and suffix" time="0">
+    <testcase classname="ApiCenterSdkService kafka helpers buildTenantTopic normalizes tribe id and suffix" name="ApiCenterSdkService kafka helpers buildTenantTopic normalizes tribe id and suffix" time="0.001">
     </testcase>
   </testsuite>
 </testsuites>

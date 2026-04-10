@@ -132,11 +132,11 @@ export class ApiCenterSdkService {
     const normalizedTribeId = String(tribeId)
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9._-]/g, '-');
+      .replaceAll(/[^a-z0-9._-]/g, '-');
     const normalizedSuffix = String(suffix)
       .trim()
       .toLowerCase()
-      .replace(/[^a-z0-9._-]/g, '-');
+      .replaceAll(/[^a-z0-9._-]/g, '-');
 
     return `tribe.${normalizedTribeId}.${normalizedSuffix}`;
   }
