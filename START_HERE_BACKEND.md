@@ -12,7 +12,7 @@ It already includes:
 - APICenter SDK integration
 - Health endpoint with dependency checks
 - CI/CD caller workflow into central reusable pipelines
-- Replit runtime alignment for test/main branch auto-deploy
+- Render deployment integration for test/uat/main branches
 - Strict TypeScript + lint/test tooling
 
 Use this template as a starting point, then replace business-domain code with your own modules.
@@ -29,7 +29,8 @@ This backend does not run alone. It sits in a wider system:
 [ImplementSprint/central-workflow]
     |
     |-- quality gates, sonar, docker, k6, promotion
-  |-- replit lane on test/main (webhook or verify-only)
+  |-- deploy-preview lane (test/uat)
+  |-- render-deploy lane (test/uat/main)
 
 [Your Tribe Backend Runtime]
     |
@@ -73,8 +74,6 @@ src/
 .github/workflows/
   be-pipeline-caller.yml
 
-.replit
-replit.nix
 .env.example
 README.md
 ```
@@ -108,13 +107,16 @@ Required for default pipeline behavior:
 
 Optional:
 
-- REPLIT_HEALTHCHECK_URL_TEST (recommended for test verify-only mode)
-- REPLIT_HEALTHCHECK_URL_PROD (recommended for production verify-only mode)
-- REPLIT_HEALTHCHECK_URL (optional fallback health URL)
-- REPLIT_DEPLOY_URL (optional; enables webhook-trigger mode)
-- REPLIT_API_KEY (currently optional/unused by deploy curl path)
+- RENDER_DEPLOY_HOOK_URL_TEST
+- RENDER_DEPLOY_HOOK_URL_UAT
+- RENDER_DEPLOY_HOOK_URL_MAIN
+- RENDER_HEALTHCHECK_URL_TEST
+- RENDER_HEALTHCHECK_URL_UAT
+- RENDER_HEALTHCHECK_URL_MAIN
+- RENDER_DEPLOY_HOOK_URL (optional fallback)
+- RENDER_HEALTHCHECK_URL (optional fallback)
 
-### 4.3 Runtime Secrets (Replit or Cluster Secret Store)
+### 4.3 Runtime Secrets (Render or Cluster Secret Store)
 
 Required runtime variables for production deployments:
 
@@ -257,29 +259,27 @@ Your tribe must be configured in APICenter with:
 
 Without platform registration and allowlist, calls will be denied.
 
-## 8) Replit: How It Works In This System
+## 8) Render: How It Works In This System
 
 ### 8.1 Branch behavior
 
-- test branch: Replit preview via branch auto-deploy
-- main branch: Replit production via branch auto-deploy
-- uat branch: Kubernetes deploy path (not Replit)
+- test branch: Render test deployment
+- uat branch: Render UAT deployment
+- main branch: Render production deployment
 
-### 8.2 CI mode selection for Replit lane
+### 8.2 CI mode selection for Render lane
 
-- Auto mode (default):
-  - Uses webhook when REPLIT_DEPLOY_URL exists
-  - Uses verify-only mode when webhook is absent
-- Verify-only mode requires a reachable health URL from one of:
-  - REPLIT_HEALTHCHECK_URL_TEST (test)
-  - REPLIT_HEALTHCHECK_URL_PROD (main/production)
-  - REPLIT_HEALTHCHECK_URL (fallback)
+Central workflow behavior:
 
-### 8.3 Runtime setup on Replit
+- Caller workflow keeps deploy lanes enabled on push.
+- Central `render-deploy` job triggers branch-mapped Render hooks.
+- Health verification must return HTTP 200 with `checks.apiCenter=true`.
 
-1. Import repo to Replit.
-2. Add runtime env vars in Replit Secrets.
-3. Set ALLOWED_ORIGINS to exact Replit URL.
+### 8.3 Runtime setup on Render
+
+1. Create environment(s) on Render for test/uat/main.
+2. Add runtime env vars in Render Environment settings.
+3. Set ALLOWED_ORIGINS to exact frontend URLs.
 4. Use NODE_ENV=production and ENABLE_SWAGGER=false.
 
 ## 9) CI/CD Flow (What Happens On Push)
@@ -293,14 +293,13 @@ Typical order:
 2. Security scan
 3. SonarCloud analysis
 4. Docker build (main lane)
-5. Deployment lanes (staging on uat; Replit lane on test/main with webhook-or-verify mode)
-6. k6 smoke lane (branch/policy dependent)
-7. Promotion PR automation (test -> uat -> main)
+5. Deploy lanes (central reusable workflow)
+6. k6/versioning/promotion orchestration
 
 Important:
 
-- run_deploy defaults to enabled for push in caller config.
-- Replit lane remains branch-gated to test/main by central workflow policy.
+- Render deployment is handled in central-workflow (`render-deploy` reusable lane).
+- Caller workflow delegates deployment by keeping `run_deploy` enabled on push.
 - dry_run mainly impacts manual dispatch scenarios.
 
 ## 10) Feature Development Pattern For New Teams
@@ -318,11 +317,11 @@ Use this repeatable flow:
 ## 11) Common Mistakes To Avoid
 
 - Pushing without BACKEND_SINGLE_SYSTEMS_JSON configured
-- Enabling webhook mode without REPLIT_DEPLOY_URL configured
+- Missing branch-specific Render deploy hook or healthcheck secrets
 - Using wildcard CORS origins instead of exact values
 - Depending on legacy API_CENTER_API_KEY when tribe credentials are available
 - Bypassing APICenter for inter-service/external calls
-- Treating UAT as Replit lane (it is not)
+- Skipping API Center health verification after Render deployment
 
 ## 12) Commands You Will Use Often
 
@@ -342,7 +341,7 @@ npm run build
 2. Configure runtime env vars/secrets.
 3. Update service identity and module wiring.
 4. Validate health endpoint locally.
-5. Push to test branch and verify pipeline + Replit preview.
+5. Push to test branch and verify pipeline + Render test deployment.
 6. Verify APICenter authentication mode (tribe credentials preferred).
 7. Verify one Kafka read path and one produce path via SDK helpers.
 8. Open and validate promotion PR flow to uat/main.

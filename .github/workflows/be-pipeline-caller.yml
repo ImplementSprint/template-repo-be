@@ -35,7 +35,7 @@ on:
         type: string
         default: "test,main"
       run_deploy:
-        description: "Enable central deploy lanes (staging + optional webhook lanes)"
+        description: "Enable central deploy lanes (staging + Render lanes)"
         type: boolean
         default: false
       run_promotion:
@@ -82,7 +82,7 @@ jobs:
       k6_run_only_on_branch: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.k6_run_only_on_branch || 'test,main' }}
       # Default push behavior:
       # - push (test/uat/main): keep central deploy lanes visible
-      # - Replit lane decides webhook vs verify-only mode in reusable workflow
+      # - Render lane execution is centralized in master-pipeline-be.yml
       # - workflow_dispatch keeps manual run_deploy toggle
       run_deploy: ${{ github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.run_deploy || 'false') || github.event_name == 'push' }}
       run_promotion: ${{ github.event_name == 'workflow_dispatch' && fromJSON(github.event.inputs.run_promotion || 'true') || github.event_name == 'push' }}

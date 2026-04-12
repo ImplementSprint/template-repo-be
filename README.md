@@ -81,7 +81,7 @@ Copy `.env.example` to `.env` and fill in real values. Never commit `.env`.
 
 ### Strict Env Validation
 
-`src/common/config/env.validation.ts` is enforced automatically when `NODE_ENV=production`, which makes Replit/main deploys fail fast on missing required configuration. Non-production runs keep local developer flexibility.
+`src/common/config/env.validation.ts` is enforced automatically when `NODE_ENV=production`, which makes production-grade deployments fail fast on missing required configuration. Non-production runs keep local developer flexibility.
 
 ---
 
@@ -226,11 +226,14 @@ Before the first pipeline run, configure these in your GitHub repository:
 | `GH_PR_TOKEN` | Token with PR write permissions for auto-promotion |
 | `K6_CLOUD_TOKEN` | Grafana Cloud token for k6 execution |
 | `K6_CLOUD_PROJECT_ID` | Grafana Cloud project ID for k6 execution |
-| `REPLIT_HEALTHCHECK_URL_TEST` | Recommended. Test Replit URL (base URL or full health endpoint) |
-| `REPLIT_HEALTHCHECK_URL_PROD` | Recommended. Production Replit URL (base URL or full health endpoint) |
-| `REPLIT_HEALTHCHECK_URL` | Optional fallback health URL used when env-specific secrets are missing |
-| `REPLIT_DEPLOY_URL` | Optional. Enables webhook-trigger mode for Replit lane; otherwise lane runs verify-only mode |
-| `REPLIT_API_KEY` | Optional (currently unused by the reusable deploy workflow) |
+| `RENDER_DEPLOY_HOOK_URL_TEST` | Required for `test` branch Render deployments |
+| `RENDER_DEPLOY_HOOK_URL_UAT` | Required for `uat` branch Render deployments |
+| `RENDER_DEPLOY_HOOK_URL_MAIN` | Required for `main` branch Render deployments |
+| `RENDER_HEALTHCHECK_URL_TEST` | Required health URL for `test` branch verification |
+| `RENDER_HEALTHCHECK_URL_UAT` | Required health URL for `uat` branch verification |
+| `RENDER_HEALTHCHECK_URL_MAIN` | Required health URL for `main` branch verification |
+| `RENDER_DEPLOY_HOOK_URL` | Optional fallback deploy hook URL if branch-specific secret is omitted |
+| `RENDER_HEALTHCHECK_URL` | Optional fallback health URL if branch-specific secret is omitted |
 
 ### Pipeline Stages
 
@@ -238,50 +241,49 @@ Before the first pipeline run, configure these in your GitHub repository:
 2. **Security scan** — `npm audit` + license compliance check
 3. **SonarCloud** — static analysis (requires secrets above)
 4. **Docker build** — multi-stage build + Trivy vulnerability scan (main branch only)
-5. **Deploy** — staging deploy on `uat` branch
-6. **Replit deploy (test/main)** — lane always runs on push when deploy lanes are enabled; mode is auto-selected:
-  - `webhook` when `REPLIT_DEPLOY_URL` is configured
-  - `verify-only` when webhook is absent (health polling via `REPLIT_HEALTHCHECK_URL_*`)
+5. **Deploy lanes (central reusable pipeline)**
+  - `deploy-preview` on `test`/`uat` (staging lane)
+  - `render-deploy` on `test`/`uat`/`main` (deploy hook + health verification)
+6. **k6 smoke test** — runs on configured branches after deploy lanes
 7. **Versioning** — semantic version tag per branch
-8. **k6 smoke test** — runs on configured branches and target URL settings
-9. **Promotion** — auto-creates PR to next branch only when all required gates pass (tests, security, SonarCloud, Grafana k6)
+8. **Promotion** — auto-creates PR to next branch when required quality gates pass
+  - branch mapping: `test` -> test, `uat` -> uat, `main` -> main
+  - deployment passes only when health endpoint returns `checks.apiCenter=true`
 
 ---
 
-## Replit (Test Preview + Main Deployment)
+## Render Deployment (Test/UAT/Main)
 
-Replit is used for preview deployments on the `test` branch and production deployment on the `main` branch. UAT uses Kubernetes.
+This template now uses Render for backend deployments through the central reusable backend pipeline.
 
-Default behavior in this repository is a dual-mode Replit lane in CI:
-- If `REPLIT_DEPLOY_URL` is configured, CI triggers webhook deploy and then verifies health.
-- If `REPLIT_DEPLOY_URL` is not configured, CI runs verify-only mode using `REPLIT_HEALTHCHECK_URL_TEST`/`REPLIT_HEALTHCHECK_URL_PROD`.
+### Deployment behavior
 
-### Files added
-
-| File | Purpose |
-|------|---------|
-| `.replit` | Workspace config: Node 22 module, build + start command, port mapping |
-| `replit.nix` | Nix environment: provisions Node.js 22 LTS |
+1. The caller workflow delegates deployment to `master-pipeline-be.yml` and keeps deploy lanes enabled on push.
+2. The central `render-deploy` reusable lane runs on `test`, `uat`, and `main` branches.
+3. The lane triggers the branch-specific Render deploy hook.
+4. The lane polls the configured health endpoint and requires `checks.apiCenter=true` before passing.
 
 ### Setup
 
-1. Import the repository into Replit (Import from GitHub)
-2. Open **Tools > Secrets** and add all required env vars (do NOT create a `.env` file — see `.env.example` for the full list)
-3. Set `ALLOWED_ORIGINS` to your Replit preview URL: `https://<repl-name>.<username>.repl.co`
-4. Set APICenter auth mode:
+1. Create Render services/environments for `test`, `uat`, and `main` deployment targets.
+2. Add deploy hooks in GitHub secrets:
+  - `RENDER_DEPLOY_HOOK_URL_TEST`
+  - `RENDER_DEPLOY_HOOK_URL_UAT`
+  - `RENDER_DEPLOY_HOOK_URL_MAIN`
+3. Add health URLs in GitHub secrets:
+  - `RENDER_HEALTHCHECK_URL_TEST`
+  - `RENDER_HEALTHCHECK_URL_UAT`
+  - `RENDER_HEALTHCHECK_URL_MAIN`
+4. Optional fallbacks:
+  - `RENDER_DEPLOY_HOOK_URL`
+  - `RENDER_HEALTHCHECK_URL`
+5. Configure Render runtime environment variables (same set as `.env.example`).
+6. Set APICenter auth mode:
   - Preferred: `API_CENTER_TRIBE_ID` + `API_CENTER_TRIBE_SECRET`
   - Legacy fallback: `API_CENTER_API_KEY`
-5. Set `NODE_ENV=production` and `ENABLE_SWAGGER=false`
-6. Set GitHub healthcheck secrets so verify-only mode can validate Replit:
-  - `REPLIT_HEALTHCHECK_URL_TEST`
-  - `REPLIT_HEALTHCHECK_URL_PROD`
-  - Optional fallback: `REPLIT_HEALTHCHECK_URL`
-7. Optional: set GitHub secret `REPLIT_DEPLOY_URL` if you want webhook-trigger mode from CI
-8. Click **Run** — Replit will execute `npm run build && npm run start:prod`
+7. Set `NODE_ENV=production` and `ENABLE_SWAGGER=false` in Render.
 
-The app binds to `0.0.0.0:3000` so Replit's reverse proxy can reach it. The health endpoint at `/api/v1/health` is available for Replit's health monitor.
-
-> **CORS note:** The CORS factory uses exact-match whitelisting — wildcards are not accepted. Set `ALLOWED_ORIGINS` to the exact Replit preview URL for your repl.
+> **CORS note:** The CORS factory uses exact-match whitelisting. Set `ALLOWED_ORIGINS` to your exact frontend URLs for each environment.
 
 ---
 
